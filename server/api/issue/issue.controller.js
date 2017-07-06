@@ -79,6 +79,14 @@ export function show(req, res) {
     .catch(handleError(res));
 }
 
+// Get all the issues in a project from the DB
+export function showProjectIssues(req, res) {
+  return Issue.find({project: {_id: req.params.id}}).exec()
+    .then(handleEntityNotFound(res))
+    .then(respondWithResult(res))
+    .catch(handleError(res));
+}
+
 // Creates a new Issue in the DB
 export function create(req, res) {
   return Issue.create(req.body)

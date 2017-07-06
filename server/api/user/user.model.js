@@ -21,7 +21,9 @@ var UserSchema = new Schema({
     required: true
   },
   provider: String,
-  salt: String
+  salt: String,
+}, {
+  timestamps: true
 });
 
 /**

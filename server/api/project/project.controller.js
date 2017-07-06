@@ -12,6 +12,7 @@
 
 import jsonpatch from 'fast-json-patch';
 import Project from './project.model';
+import mongoose from 'mongoose';
 
 function respondWithResult(res, statusCode) {
   statusCode = statusCode || 200;
@@ -77,6 +78,30 @@ export function show(req, res) {
     .then(handleEntityNotFound(res))
     .then(respondWithResult(res))
     .catch(handleError(res));
+}
+
+// Gets all the users in a project from the DB
+export function showUsers(req, res) {
+  return Project.findById(req.params.id, 'users').exec()
+      .then(handleEntityNotFound(res))
+      .then(respondWithResult(res))
+      .catch(handleError(res));
+}
+
+// Gets all the assigned projects for a User
+export function showAssignedProjects(req, res) {
+  return Project.find({users: mongoose.Types.ObjectId(req.params.id)}).exec()
+      .then(handleEntityNotFound(res))
+      .then(respondWithResult(res))
+      .catch(handleError(res));
+}
+
+// Gets all the projects created by a User
+export function showUserProjects(req, res) {
+  return Project.find({owner: mongoose.Types.ObjectId(req.params.id)}).exec()
+      .then(handleEntityNotFound(res))
+      .then(respondWithResult(res))
+      .catch(handleError(res));
 }
 
 // Creates a new Project in the DB

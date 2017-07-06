@@ -3,10 +3,13 @@
 import mongoose from 'mongoose';
 import {registerEvents} from './comment.events';
 
+
 var CommentSchema = new mongoose.Schema({
-  name: String,
-  info: String,
-  active: Boolean
+  content: String,
+  commentedOn: mongoose.Schema.Types.ObjectId,
+  postedBy: mongoose.Schema.Types.ObjectId,
+}, {
+  timestamps: true
 });
 
 registerEvents(CommentSchema);

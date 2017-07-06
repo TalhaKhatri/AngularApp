@@ -12,6 +12,7 @@
 
 import jsonpatch from 'fast-json-patch';
 import Comment from './comment.model';
+import mongoose from 'mongoose';
 
 function respondWithResult(res, statusCode) {
   statusCode = statusCode || 200;
@@ -74,6 +75,14 @@ export function index(req, res) {
 // Gets a single Comment from the DB
 export function show(req, res) {
   return Comment.findById(req.params.id).exec()
+    .then(handleEntityNotFound(res))
+    .then(respondWithResult(res))
+    .catch(handleError(res));
+}
+
+// Gets all the comments related to an issue
+export function showComments(req, res) {
+  return Comment.find({commentedOn: mongoose.Types.ObjectId(req.params.id)}).exec()
     .then(handleEntityNotFound(res))
     .then(respondWithResult(res))
     .catch(handleError(res));

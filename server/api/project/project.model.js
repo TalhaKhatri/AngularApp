@@ -4,9 +4,11 @@ import mongoose from 'mongoose';
 import {registerEvents} from './project.events';
 
 var ProjectSchema = new mongoose.Schema({
-  name: String,
-  info: String,
-  active: Boolean
+  title: String,
+  owner: mongoose.Schema.Types.ObjectId,
+  users: [mongoose.Schema.Types.ObjectId],
+}, {
+  timestamps: true
 });
 
 registerEvents(ProjectSchema);
