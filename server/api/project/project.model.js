@@ -5,8 +5,8 @@ import {registerEvents} from './project.events';
 
 var ProjectSchema = new mongoose.Schema({
   title: String,
-  owner: mongoose.Schema.Types.ObjectId,
-  users: [mongoose.Schema.Types.ObjectId],
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  /*users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],*/
 }, {
   timestamps: true
 });

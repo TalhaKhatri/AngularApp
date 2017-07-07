@@ -23,8 +23,10 @@ var UserSchema = new Schema({
   provider: String,
   salt: String,
 }, {
-  timestamps: true
+  timestamps: true,
 });
+
+UserSchema.set('toObject', { getters: true });
 
 /**
  * Virtuals
@@ -222,7 +224,7 @@ UserSchema.methods = {
           return callback(null, key.toString('base64'));
         }
       });
-  }
+  },
 };
 
 registerEvents(UserSchema);

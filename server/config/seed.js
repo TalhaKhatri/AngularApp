@@ -6,6 +6,9 @@
 'use strict';
 import Thing from '../api/thing/thing.model';
 import User from '../api/user/user.model';
+import Issue from '../api/issue/issue.model';
+import Project from '../api/project/project.model';
+import Comment from '../api/comment/comment.model';
 import config from './environment/';
 
 export default function seedDatabaseIfNeeded() {
@@ -42,7 +45,7 @@ export default function seedDatabaseIfNeeded() {
         });
         return thing;
       })
-      .then(() => console.log('finished populating things'))
+      .then(() => console.error('finished populating things'))
       .catch(err => console.log('error populating things', err));
 
     User.find({}).remove()
@@ -59,8 +62,29 @@ export default function seedDatabaseIfNeeded() {
           email: 'admin@example.com',
           password: 'admin'
         })
-        .then(() => console.log('finished populating users'))
+        .then(() => { 
+          console.error('finished populating users');
+          Project.find({}).remove()
+          .then(() => {
+            User.findOne({'name': 'Admin'}).exec(function (err, user) {
+              if(err) return console.log("Error retrieving user", err);
+              else {
+                var project = new Project({title: 'New Project', owner: user._id});
+                console.log('The user id found is: '+ user._id);
+                project.save(function(err) {
+                  if(err) {
+                    console.error('Error while saving Project', err);
+                  } else {
+                    console.log('Project saved successfully!');
+                  }
+                });
+              }
+            });
+          });
+        })
         .catch(err => console.log('error populating users', err));
       });
+    
+    
   }
 }
