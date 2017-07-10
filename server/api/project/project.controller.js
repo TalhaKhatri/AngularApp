@@ -82,7 +82,7 @@ export function show(req, res) {
 
 // Gets all the users in a project from the DB
 export function showUsers(req, res) {
-  return Project.findById(req.params.id, 'users').exec()
+  return Project.findById(req.params.id, 'users -_id').exec()
       .then(handleEntityNotFound(res))
       .then(respondWithResult(res))
       .catch(handleError(res));

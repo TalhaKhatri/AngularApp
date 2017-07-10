@@ -6,9 +6,9 @@ import {registerEvents} from './issue.events';
 var IssueSchema = new mongoose.Schema({
   title: String,
   description: String,
-  project: mongoose.Schema.Types.ObjectId,
-  asignee: mongoose.Schema.Types.ObjectId,
-  creator: mongoose.Schema.Types.ObjectId,
+  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+  asignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   state: {type: String, default: 'pending'},
 }, {
   timestamps: true

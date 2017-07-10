@@ -32,11 +32,21 @@ describe('Project API:', function() {
 
   describe('POST /api/projects', function() {
     beforeEach(function(done) {
+      var users;
+      request(app).get('/api/users').end((err, res) => {
+        if(err) {
+          return done(err);
+        } else {
+          users = res.body;
+          done();
+        }
+      });
       request(app)
         .post('/api/projects')
         .send({
-          name: 'New Project',
-          info: 'This is the brand new project!!!'
+          title: 'New Project',
+          owner: users[0]._id,
+          users: [users[0]._id]
         })
         .expect(201)
         .expect('Content-Type', /json/)
@@ -50,8 +60,9 @@ describe('Project API:', function() {
     });
 
     it('should respond with the newly created project', function() {
-      newProject.name.should.equal('New Project');
-      newProject.info.should.equal('This is the brand new project!!!');
+      newProject.title.should.equal('New Project');
+      newProject.owner.should.equal(users[0]._id);
+      newProject.users.should.equal([users[0]._id]);
     });
   });
 
@@ -77,6 +88,33 @@ describe('Project API:', function() {
     });
 
     it('should respond with the requested project', function() {
+      project.name.should.equal('New Project');
+      project.info.should.equal('This is the brand new project!!!');
+    });
+  });
+
+  describe('GET /api/projects/:id/users', function() {
+    var users;
+
+    beforeEach(function(done) {
+      request(app)
+        .get(`/api/projects/${newProject._id}`)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end((err, res) => {
+          if(err) {
+            return done(err);
+          }
+          users = res.body;
+          done();
+        });
+    });
+
+    afterEach(function() {
+      project = {};
+    });
+
+    it('should respond with the requested user IDs belonging to the project', function() {
       project.name.should.equal('New Project');
       project.info.should.equal('This is the brand new project!!!');
     });

@@ -6,8 +6,8 @@ import {registerEvents} from './comment.events';
 
 var CommentSchema = new mongoose.Schema({
   content: String,
-  commentedOn: mongoose.Schema.Types.ObjectId,
-  postedBy: mongoose.Schema.Types.ObjectId,
+  commentedOn: { type: mongoose.Schema.Types.ObjectId, ref: 'Issue' },
+  postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, {
   timestamps: true
 });

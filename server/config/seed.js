@@ -13,6 +13,7 @@ import config from './environment/';
 
 export default function seedDatabaseIfNeeded() {
   if(config.seedDB) {
+    var proje;
     Thing.find({}).remove()
       .then(() => {
         let thing = Thing.create({
@@ -57,6 +58,11 @@ export default function seedDatabaseIfNeeded() {
           password: 'test'
         }, {
           provider: 'local',
+          name: 'Talha',
+          email: 'talha@example.com',
+          password: 'talha'
+        }, {
+          provider: 'local',
           role: 'admin',
           name: 'Admin',
           email: 'admin@example.com',
@@ -66,19 +72,52 @@ export default function seedDatabaseIfNeeded() {
           console.error('finished populating users');
           Project.find({}).remove()
           .then(() => {
-            User.findOne({'name': 'Admin'}).exec(function (err, user) {
-              if(err) return console.log("Error retrieving user", err);
-              else {
-                var project = new Project({title: 'New Project', owner: user._id});
-                console.log('The user id found is: '+ user._id);
-                project.save(function(err) {
-                  if(err) {
-                    console.error('Error while saving Project', err);
-                  } else {
-                    console.log('Project saved successfully!');
-                  }
-                });
-              }
+            User.findOne({'name': 'Admin'}).exec()
+            .then((user) => {
+              var proj = new Project({title: 'New Project', owner: user._id, users: [user._id]});
+              proj.save(function(err) {
+                if(err) {
+                  console.error('Error while saving Project', err);
+                } else {
+                  console.log('Project saved successfully!');
+                }
+              });
+              Issue.find({}).remove()
+              .then(() => {
+                User.find({name: { $in: ['Talha', 'Test User'] }}).exec(function(err, users) {
+                    if(err) return console.log('Error finding user "Talha" and "Test User');
+                    else {
+                      var issue = new Issue({ title: 'New Issue', 
+                                              description: 'There is a bug in the project',
+                                              project: proj._id,
+                                              asignee: users[0]._id,
+                                              creator: users[1]._id});
+                      issue.save(function(err) {
+                        if(err) {
+                          return console.log('Error while saving Issue.', err);
+                        } else {
+                          return console.log('Issue saved successfully!');
+                        }
+                      });
+                      Comment.find({}).remove()
+                        .then(() => {
+                          var comment = new Comment({ content: 'I think we should fix this issue first.',
+                                                      commentedOn: issue._id,
+                                                      postedBy: user._id});
+                          comment.save(function(err) {
+                            if(err) {
+                              return console.log('Error while saving Comment.', err);
+                            } else {
+                              return console.log('Comment saved successfully!');
+                            }
+                          });
+                        });
+                    }
+                  });
+              });
+            })
+            .catch((err) => {
+              console.log("Error retrieving user", err);
             });
           });
         })
