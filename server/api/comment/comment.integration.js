@@ -1,19 +1,89 @@
 'use strict';
 
-/* globals describe, expect, it, beforeEach, afterEach */
+/* globals describe, expect, it, before, after, beforeEach, afterEach */
 
-var app = require('../..');
+import app from '../..';
+import User from '../user/user.model';
+import Issue from '../issue/issue.model';
+import Project from '../project/project.model';
 import request from 'supertest';
 
 var newComment;
 
 describe('Comment API:', function() {
+  var user;
+  var token;
+  var issue;
+  var project;
+  // Clear users before testing
+  before(function() {
+    return User.remove().then(function() {
+      user = new User({
+        name: 'Fake User',
+        email: 'test@example.com',
+        password: 'password'
+      });
+
+      return user.save();
+    }, function(err) {
+      if(err) console.log('Error saving user', err);
+    })
+    .then(() => {
+      return Project.remove().then(function() {
+        project = new Project({
+          title: 'New Project',
+          owner: user._id,
+          users: [user._id]
+        });
+        return project.save();
+      });
+    }, function(err) {
+      if(err) console.log('Error saving project', err);
+    })
+    .then(() => {
+      return Issue.remove().then(function() {
+        issue = new Issue({
+          title: 'New Issue',
+          description: 'Issue description',
+          project: project._id,
+          assignee: user._id,
+          creator: user._id
+        });
+        return issue.save();
+      });
+    }, function(err) {
+      if(err) console.log('Error saving issue', err);
+    });
+  });
+
+  beforeEach(function(done) {
+      request(app)
+        .post('/auth/local')
+        .send({
+          email: 'test@example.com',
+          password: 'password'
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end((err, res) => {
+          token = res.body.token;
+          done();
+        });
+  });
+
+  // Clear users after testing
+  after(function() {
+    return User.remove()
+      .then(Project.remove()
+        .then(Issue.remove()));
+  });
   describe('GET /api/comments', function() {
     var comments;
 
     beforeEach(function(done) {
       request(app)
         .get('/api/comments')
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -34,9 +104,11 @@ describe('Comment API:', function() {
     beforeEach(function(done) {
       request(app)
         .post('/api/comments')
+        .set('authorization', `Bearer ${token}`)
         .send({
-          name: 'New Comment',
-          info: 'This is the brand new comment!!!'
+          content: 'New Comment',
+          commentedOn: issue._id,
+          postedBy: user._id
         })
         .expect(201)
         .expect('Content-Type', /json/)
@@ -50,8 +122,9 @@ describe('Comment API:', function() {
     });
 
     it('should respond with the newly created comment', function() {
-      newComment.name.should.equal('New Comment');
-      newComment.info.should.equal('This is the brand new comment!!!');
+      newComment.content.should.equal('New Comment');
+      newComment.commentedOn.should.equal(issue._id.toString());
+      newComment.postedBy.should.equal(user._id.toString());
     });
   });
 
@@ -61,6 +134,7 @@ describe('Comment API:', function() {
     beforeEach(function(done) {
       request(app)
         .get(`/api/comments/${newComment._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -77,8 +151,9 @@ describe('Comment API:', function() {
     });
 
     it('should respond with the requested comment', function() {
-      comment.name.should.equal('New Comment');
-      comment.info.should.equal('This is the brand new comment!!!');
+      comment.content.should.equal('New Comment');
+      comment.commentedOn.should.equal(issue._id.toString());
+      comment.postedBy.should.equal(user._id.toString());
     });
   });
 
@@ -88,9 +163,9 @@ describe('Comment API:', function() {
     beforeEach(function(done) {
       request(app)
         .put(`/api/comments/${newComment._id}`)
+        .set('authorization', `Bearer ${token}`)
         .send({
-          name: 'Updated Comment',
-          info: 'This is the updated comment!!!'
+          content: 'Updated Comment'
         })
         .expect(200)
         .expect('Content-Type', /json/)
@@ -108,13 +183,13 @@ describe('Comment API:', function() {
     });
 
     it('should respond with the updated comment', function() {
-      updatedComment.name.should.equal('Updated Comment');
-      updatedComment.info.should.equal('This is the updated comment!!!');
+      updatedComment.content.should.equal('Updated Comment');
     });
 
     it('should respond with the updated comment on a subsequent GET', function(done) {
       request(app)
         .get(`/api/comments/${newComment._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -122,43 +197,9 @@ describe('Comment API:', function() {
             return done(err);
           }
           let comment = res.body;
-
-          comment.name.should.equal('Updated Comment');
-          comment.info.should.equal('This is the updated comment!!!');
-
+          comment.content.should.equal('Updated Comment');
           done();
         });
-    });
-  });
-
-  describe('PATCH /api/comments/:id', function() {
-    var patchedComment;
-
-    beforeEach(function(done) {
-      request(app)
-        .patch(`/api/comments/${newComment._id}`)
-        .send([
-          { op: 'replace', path: '/name', value: 'Patched Comment' },
-          { op: 'replace', path: '/info', value: 'This is the patched comment!!!' }
-        ])
-        .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function(err, res) {
-          if(err) {
-            return done(err);
-          }
-          patchedComment = res.body;
-          done();
-        });
-    });
-
-    afterEach(function() {
-      patchedComment = {};
-    });
-
-    it('should respond with the patched comment', function() {
-      patchedComment.name.should.equal('Patched Comment');
-      patchedComment.info.should.equal('This is the patched comment!!!');
     });
   });
 
@@ -166,6 +207,7 @@ describe('Comment API:', function() {
     it('should respond with 204 on successful removal', function(done) {
       request(app)
         .delete(`/api/comments/${newComment._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(204)
         .end(err => {
           if(err) {
@@ -178,6 +220,7 @@ describe('Comment API:', function() {
     it('should respond with 404 when comment does not exist', function(done) {
       request(app)
         .delete(`/api/comments/${newComment._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(404)
         .end(err => {
           if(err) {

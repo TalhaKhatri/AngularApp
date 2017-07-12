@@ -1,13 +1,65 @@
 'use strict';
 
-/* globals describe, expect, it, beforeEach, afterEach */
+/* globals describe, expect, it, before, after, beforeEach, afterEach */
 
 var app = require('../..');
+import User from '../user/user.model';
+import Project from '../project/project.model';
 import request from 'supertest';
 
 var newIssue;
 
 describe('Issue API:', function() {
+  var user;
+  var token;
+  var project;
+
+    // Clear users before testing
+  before(function() {
+    return User.remove().then(function() {
+      user = new User({
+        name: 'Fake User',
+        email: 'test@example.com',
+        password: 'password'
+      });
+
+      return user.save();
+    }, function(err) {
+      if(err) console.log('Error saving user', err);
+    })
+    .then(() => {
+      return Project.remove().then(function() {
+        project = new Project({
+          title: 'New Project',
+          owner: user._id,
+          users: [user._id]
+        });
+        return project.save();
+      });
+    }, function(err) {
+      if(err) console.log('Error saving project', err);
+    })
+  });
+
+  beforeEach(function(done) {
+      request(app)
+        .post('/auth/local')
+        .send({
+          email: 'test@example.com',
+          password: 'password'
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end((err, res) => {
+          token = res.body.token;
+          done();
+        });
+  });
+
+  // Clear users after testing
+  after(function() {
+    return User.remove().then(Project.remove());
+  });
   describe('GET /api/issues', function() {
     var issues;
 

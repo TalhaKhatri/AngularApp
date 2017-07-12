@@ -11,6 +11,6 @@ router.get('/:id', auth.isAuthenticated(), controller.show);
 router.post('/', auth.isAuthenticated(), controller.create);
 router.put('/:id', auth.isAuthenticated(), controller.upsert);
 router.patch('/:id', auth.isAuthenticated(), controller.patch);
-router.delete('/:id', auth.isAuthenticated(), controller.destroy);
+router.delete('/:id', auth.hasRole('admin'), controller.destroy);
 router.get('/:id/comments', auth.isAuthenticated(), commentController.showComments);
 module.exports = router;

@@ -33,16 +33,33 @@ describe('Project API:', function() {
   describe('POST /api/projects', function() {
     beforeEach(function(done) {
       var users;
-      request(app).get('/api/users').end((err, res) => {
-        if(err) {
-          return done(err);
-        } else {
-          users = res.body;
+      var token;
+      request(app)
+        .post('/auth/local')
+        .send({
+          email: 'test@example.com',
+          password: 'test'
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end((err, res) => {
+          token = res.body.token;
           done();
-        }
+        });
+      request(app)
+        .get('/api/users')
+        .set('authorization', `Bearer ${token}`)
+        .end((err, res) => {
+          if(err) {
+            return done(err);
+          } else {
+            users = res.body;
+            done();
+          }
       });
       request(app)
         .post('/api/projects')
+        .set('authorization', `Bearer ${token}`)
         .send({
           title: 'New Project',
           owner: users[0]._id,

@@ -13,6 +13,15 @@ var commentCtrlStub = {
   destroy: 'commentCtrl.destroy'
 };
 
+var authServiceStub = {
+  isAuthenticated() {
+    return 'authService.isAuthenticated';
+  },
+  hasRole(role) {
+    return `authService.hasRole.${role}`;
+  }
+};
+
 var routerStub = {
   get: sinon.spy(),
   put: sinon.spy(),
@@ -28,7 +37,8 @@ var commentIndex = proxyquire('./index.js', {
       return routerStub;
     }
   },
-  './comment.controller': commentCtrlStub
+  './comment.controller': commentCtrlStub,
+  '../../auth/auth.service': authServiceStub
 });
 
 describe('Comment API Router:', function() {
@@ -39,7 +49,7 @@ describe('Comment API Router:', function() {
   describe('GET /api/comments', function() {
     it('should route to comment.controller.index', function() {
       routerStub.get
-        .withArgs('/', 'commentCtrl.index')
+        .withArgs('/', 'authService.isAuthenticated', 'commentCtrl.index')
         .should.have.been.calledOnce;
     });
   });
@@ -47,7 +57,7 @@ describe('Comment API Router:', function() {
   describe('GET /api/comments/:id', function() {
     it('should route to comment.controller.show', function() {
       routerStub.get
-        .withArgs('/:id', 'commentCtrl.show')
+        .withArgs('/:id', 'authService.isAuthenticated', 'commentCtrl.show')
         .should.have.been.calledOnce;
     });
   });
@@ -55,7 +65,7 @@ describe('Comment API Router:', function() {
   describe('POST /api/comments', function() {
     it('should route to comment.controller.create', function() {
       routerStub.post
-        .withArgs('/', 'commentCtrl.create')
+        .withArgs('/', 'authService.isAuthenticated', 'commentCtrl.create')
         .should.have.been.calledOnce;
     });
   });
@@ -63,7 +73,7 @@ describe('Comment API Router:', function() {
   describe('PUT /api/comments/:id', function() {
     it('should route to comment.controller.upsert', function() {
       routerStub.put
-        .withArgs('/:id', 'commentCtrl.upsert')
+        .withArgs('/:id', 'authService.isAuthenticated', 'commentCtrl.upsert')
         .should.have.been.calledOnce;
     });
   });
@@ -71,7 +81,7 @@ describe('Comment API Router:', function() {
   describe('PATCH /api/comments/:id', function() {
     it('should route to comment.controller.patch', function() {
       routerStub.patch
-        .withArgs('/:id', 'commentCtrl.patch')
+        .withArgs('/:id', 'authService.isAuthenticated', 'commentCtrl.patch')
         .should.have.been.calledOnce;
     });
   });
@@ -79,7 +89,7 @@ describe('Comment API Router:', function() {
   describe('DELETE /api/comments/:id', function() {
     it('should route to comment.controller.destroy', function() {
       routerStub.delete
-        .withArgs('/:id', 'commentCtrl.destroy')
+        .withArgs('/:id', 'authService.isAuthenticated', 'commentCtrl.destroy')
         .should.have.been.calledOnce;
     });
   });

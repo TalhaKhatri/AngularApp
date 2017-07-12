@@ -13,6 +13,19 @@ var issueCtrlStub = {
   destroy: 'issueCtrl.destroy'
 };
 
+var commentCtrlStub = {
+  showComments: 'commentCtrl.showComments'
+};
+
+var authServiceStub = {
+  isAuthenticated() {
+    return 'authService.isAuthenticated';
+  },
+  hasRole(role) {
+    return `authService.hasRole.${role}`;
+  }
+};
+
 var routerStub = {
   get: sinon.spy(),
   put: sinon.spy(),
@@ -28,7 +41,9 @@ var issueIndex = proxyquire('./index.js', {
       return routerStub;
     }
   },
-  './issue.controller': issueCtrlStub
+  './issue.controller': issueCtrlStub,
+  '../comment/comment.controller': commentCtrlStub,
+  '../../auth/auth.service': authServiceStub
 });
 
 describe('Issue API Router:', function() {
@@ -39,7 +54,7 @@ describe('Issue API Router:', function() {
   describe('GET /api/issues', function() {
     it('should route to issue.controller.index', function() {
       routerStub.get
-        .withArgs('/', 'issueCtrl.index')
+        .withArgs('/', 'authService.isAuthenticated', 'issueCtrl.index')
         .should.have.been.calledOnce;
     });
   });
@@ -47,7 +62,7 @@ describe('Issue API Router:', function() {
   describe('GET /api/issues/:id', function() {
     it('should route to issue.controller.show', function() {
       routerStub.get
-        .withArgs('/:id', 'issueCtrl.show')
+        .withArgs('/:id', 'authService.isAuthenticated', 'issueCtrl.show')
         .should.have.been.calledOnce;
     });
   });
@@ -55,7 +70,7 @@ describe('Issue API Router:', function() {
   describe('POST /api/issues', function() {
     it('should route to issue.controller.create', function() {
       routerStub.post
-        .withArgs('/', 'issueCtrl.create')
+        .withArgs('/', 'authService.isAuthenticated', 'issueCtrl.create')
         .should.have.been.calledOnce;
     });
   });
@@ -63,7 +78,7 @@ describe('Issue API Router:', function() {
   describe('PUT /api/issues/:id', function() {
     it('should route to issue.controller.upsert', function() {
       routerStub.put
-        .withArgs('/:id', 'issueCtrl.upsert')
+        .withArgs('/:id', 'authService.isAuthenticated', 'issueCtrl.upsert')
         .should.have.been.calledOnce;
     });
   });
@@ -71,7 +86,7 @@ describe('Issue API Router:', function() {
   describe('PATCH /api/issues/:id', function() {
     it('should route to issue.controller.patch', function() {
       routerStub.patch
-        .withArgs('/:id', 'issueCtrl.patch')
+        .withArgs('/:id', 'authService.isAuthenticated', 'issueCtrl.patch')
         .should.have.been.calledOnce;
     });
   });
@@ -79,7 +94,15 @@ describe('Issue API Router:', function() {
   describe('DELETE /api/issues/:id', function() {
     it('should route to issue.controller.destroy', function() {
       routerStub.delete
-        .withArgs('/:id', 'issueCtrl.destroy')
+        .withArgs('/:id', 'authService.hasRole.admin', 'issueCtrl.destroy')
+        .should.have.been.calledOnce;
+    });
+  });
+
+  describe('GET /api/issues/:id/comments', function() {
+    it('should route to comment.controller.showComments', function() {
+      routerStub.get
+        .withArgs('/:id/comments', 'authService.isAuthenticated', 'commentCtrl.showComments')
         .should.have.been.calledOnce;
     });
   });

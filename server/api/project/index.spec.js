@@ -10,7 +10,21 @@ var projectCtrlStub = {
   create: 'projectCtrl.create',
   upsert: 'projectCtrl.upsert',
   patch: 'projectCtrl.patch',
-  destroy: 'projectCtrl.destroy'
+  destroy: 'projectCtrl.destroy',
+  showUsers: 'projectCtrl.showUsers'
+};
+
+var issueCtrlStub = {
+  showProjectIssues: 'issueCtrl.showProjectIssues'
+};
+
+var authServiceStub = {
+  isAuthenticated() {
+    return 'authService.isAuthenticated';
+  },
+  hasRole(role) {
+    return `authService.hasRole.${role}`;
+  }
 };
 
 var routerStub = {
@@ -28,7 +42,9 @@ var projectIndex = proxyquire('./index.js', {
       return routerStub;
     }
   },
-  './project.controller': projectCtrlStub
+  './project.controller': projectCtrlStub,
+  '../issue/issue.controller': issueCtrlStub,
+  '../../auth/auth.service': authServiceStub
 });
 
 describe('Project API Router:', function() {
@@ -39,7 +55,7 @@ describe('Project API Router:', function() {
   describe('GET /api/projects', function() {
     it('should route to project.controller.index', function() {
       routerStub.get
-        .withArgs('/', 'projectCtrl.index')
+        .withArgs('/', 'authService.isAuthenticated', 'projectCtrl.index')
         .should.have.been.calledOnce;
     });
   });
@@ -47,7 +63,7 @@ describe('Project API Router:', function() {
   describe('GET /api/projects/:id', function() {
     it('should route to project.controller.show', function() {
       routerStub.get
-        .withArgs('/:id', 'projectCtrl.show')
+        .withArgs('/:id', 'authService.isAuthenticated', 'projectCtrl.show')
         .should.have.been.calledOnce;
     });
   });
@@ -55,7 +71,7 @@ describe('Project API Router:', function() {
   describe('POST /api/projects', function() {
     it('should route to project.controller.create', function() {
       routerStub.post
-        .withArgs('/', 'projectCtrl.create')
+        .withArgs('/', 'authService.isAuthenticated', 'projectCtrl.create')
         .should.have.been.calledOnce;
     });
   });
@@ -63,7 +79,7 @@ describe('Project API Router:', function() {
   describe('PUT /api/projects/:id', function() {
     it('should route to project.controller.upsert', function() {
       routerStub.put
-        .withArgs('/:id', 'projectCtrl.upsert')
+        .withArgs('/:id', 'authService.isAuthenticated', 'projectCtrl.upsert')
         .should.have.been.calledOnce;
     });
   });
@@ -71,7 +87,7 @@ describe('Project API Router:', function() {
   describe('PATCH /api/projects/:id', function() {
     it('should route to project.controller.patch', function() {
       routerStub.patch
-        .withArgs('/:id', 'projectCtrl.patch')
+        .withArgs('/:id', 'authService.isAuthenticated', 'projectCtrl.patch')
         .should.have.been.calledOnce;
     });
   });
@@ -79,7 +95,23 @@ describe('Project API Router:', function() {
   describe('DELETE /api/projects/:id', function() {
     it('should route to project.controller.destroy', function() {
       routerStub.delete
-        .withArgs('/:id', 'projectCtrl.destroy')
+        .withArgs('/:id', 'authService.isAuthenticated', 'projectCtrl.destroy')
+        .should.have.been.calledOnce;
+    });
+  });
+
+  describe('GET /api/projects/:id/users', function() {
+    it('should route to project.controller.showUsers', function() {
+      routerStub.get
+        .withArgs('/:id/users', 'authService.isAuthenticated', 'projectCtrl.showUsers')
+        .should.have.been.calledOnce;
+    });
+  });
+
+  describe('GET /api/projects/:id/issues', function() {
+    it('should route to issue.controller.show', function() {
+      routerStub.get
+        .withArgs('/:id/issues', 'authService.isAuthenticated', 'issueCtrl.showProjectIssues')
         .should.have.been.calledOnce;
     });
   });
