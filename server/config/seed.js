@@ -90,7 +90,7 @@ export default function seedDatabaseIfNeeded() {
                       var issue = new Issue({ title: 'New Issue', 
                                               description: 'There is a bug in the project',
                                               project: proj._id,
-                                              asignee: users[0]._id,
+                                              assignee: users[0]._id,
                                               creator: users[1]._id});
                       issue.save(function(err) {
                         if(err) {

@@ -7,7 +7,7 @@ var IssueSchema = new mongoose.Schema({
   title: String,
   description: String,
   project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
-  asignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   state: {type: String, default: 'pending'},
 }, {

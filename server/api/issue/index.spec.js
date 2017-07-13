@@ -94,7 +94,7 @@ describe('Issue API Router:', function() {
   describe('DELETE /api/issues/:id', function() {
     it('should route to issue.controller.destroy', function() {
       routerStub.delete
-        .withArgs('/:id', 'authService.hasRole.admin', 'issueCtrl.destroy')
+        .withArgs('/:id', 'authService.isAuthenticated', 'issueCtrl.destroy')
         .should.have.been.calledOnce;
     });
   });

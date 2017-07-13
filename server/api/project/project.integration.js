@@ -1,19 +1,88 @@
 'use strict';
 
-/* globals describe, expect, it, beforeEach, afterEach */
+/* globals describe, expect, it, before, after, beforeEach, afterEach */
 
 var app = require('../..');
+import User from '../user/user.model';
+import Project from '../project/project.model';
+import Issue from '../issue/issue.model';
 import request from 'supertest';
 
 var newProject;
 
 describe('Project API:', function() {
+  var user;
+  var token;
+  var initProject;
+  var issue;
+
+    // Clear users before testing
+  before(function() {
+    return User.remove().then(function() {
+      user = new User({
+        name: 'Fake User',
+        email: 'test@example.com',
+        password: 'password'
+      });
+
+      return user.save();
+    }, function(err) {
+      if(err) console.log('Error saving user', err);
+    })
+    .then(() => {
+      return Project.remove().then(function() {
+        initProject = new Project({
+          title: 'New Project',
+          owner: user._id,
+          users: [user._id]
+        });
+        return initProject.save();
+      });
+    }, function(err) {
+      if(err) console.log('Error saving project', err);
+    })
+    .then(() => {
+      return Issue.remove().then(function() {
+        issue = new Issue({
+          title: 'New Issue',
+          description: 'Issue description',
+          project: initProject._id,
+          assignee: user._id,
+          creator: user._id
+        });
+        return issue.save();
+      });
+    }, function(err) {
+      if(err) console.log('Error saving issue', err);
+    });
+  });
+
+  beforeEach(function(done) {
+      request(app)
+        .post('/auth/local')
+        .send({
+          email: 'test@example.com',
+          password: 'password'
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end((err, res) => {
+          token = res.body.token;
+          done();
+        });
+  });
+
+  // Clear users after testing
+  after(function() {
+    return User.remove().then(Project.remove().then(Issue.remove()));
+  });
   describe('GET /api/projects', function() {
     var projects;
 
     beforeEach(function(done) {
       request(app)
         .get('/api/projects')
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -32,38 +101,13 @@ describe('Project API:', function() {
 
   describe('POST /api/projects', function() {
     beforeEach(function(done) {
-      var users;
-      var token;
-      request(app)
-        .post('/auth/local')
-        .send({
-          email: 'test@example.com',
-          password: 'test'
-        })
-        .expect(200)
-        .expect('Content-Type', /json/)
-        .end((err, res) => {
-          token = res.body.token;
-          done();
-        });
-      request(app)
-        .get('/api/users')
-        .set('authorization', `Bearer ${token}`)
-        .end((err, res) => {
-          if(err) {
-            return done(err);
-          } else {
-            users = res.body;
-            done();
-          }
-      });
       request(app)
         .post('/api/projects')
         .set('authorization', `Bearer ${token}`)
         .send({
           title: 'New Project',
-          owner: users[0]._id,
-          users: [users[0]._id]
+          owner: user._id,
+          users: [user._id]
         })
         .expect(201)
         .expect('Content-Type', /json/)
@@ -78,8 +122,8 @@ describe('Project API:', function() {
 
     it('should respond with the newly created project', function() {
       newProject.title.should.equal('New Project');
-      newProject.owner.should.equal(users[0]._id);
-      newProject.users.should.equal([users[0]._id]);
+      newProject.owner.should.equal(user._id.toString());
+      newProject.users.should.eql([user._id.toString()]);
     });
   });
 
@@ -89,6 +133,7 @@ describe('Project API:', function() {
     beforeEach(function(done) {
       request(app)
         .get(`/api/projects/${newProject._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -105,8 +150,9 @@ describe('Project API:', function() {
     });
 
     it('should respond with the requested project', function() {
-      project.name.should.equal('New Project');
-      project.info.should.equal('This is the brand new project!!!');
+      project.title.should.equal('New Project');
+      project.owner.should.equal(user._id.toString());
+      project.users.should.eql([user._id.toString()]);
     });
   });
 
@@ -115,7 +161,8 @@ describe('Project API:', function() {
 
     beforeEach(function(done) {
       request(app)
-        .get(`/api/projects/${newProject._id}`)
+        .get(`/api/projects/${newProject._id}/users`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -128,12 +175,51 @@ describe('Project API:', function() {
     });
 
     afterEach(function() {
-      project = {};
+      users = {};
     });
 
-    it('should respond with the requested user IDs belonging to the project', function() {
-      project.name.should.equal('New Project');
-      project.info.should.equal('This is the brand new project!!!');
+    it('should respond with the requested users belonging to the project', function() {
+      users.should.eql({'users':[user._id.toString()]});
+    });
+  });
+
+  describe('GET /api/projects/:id/issues', function() {
+    var issues;
+    beforeEach(function(done) {
+      request(app)
+        .get(`/api/projects/${initProject._id}/issues`)
+        .set('authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end((err, res) => {
+          if(err) {
+            return done(err);
+          }
+          issues = res.body;
+          done();
+        });
+    });
+
+    afterEach(function() {
+      issues = {};
+    });
+
+    it('should respond with the issues belonging to the project', function() {
+      issues[0]._id.should.equal(issue._id.toString());
+    });
+
+    it('should respond with a 404 when an issue does not exist in a project', function(done) {
+      request(app)
+        .get(`/api/projects/${newProject._id}/issues`)
+        .set('authorization', `Bearer ${token}`)
+        .expect(200)
+        .end((err, res) => {
+          if(err) {
+            console.log(err);
+            return done(err);
+          }
+          done();
+        });
     });
   });
 
@@ -143,9 +229,9 @@ describe('Project API:', function() {
     beforeEach(function(done) {
       request(app)
         .put(`/api/projects/${newProject._id}`)
+        .set('authorization', `Bearer ${token}`)
         .send({
-          name: 'Updated Project',
-          info: 'This is the updated project!!!'
+          title: 'Updated Project',
         })
         .expect(200)
         .expect('Content-Type', /json/)
@@ -163,13 +249,13 @@ describe('Project API:', function() {
     });
 
     it('should respond with the updated project', function() {
-      updatedProject.name.should.equal('Updated Project');
-      updatedProject.info.should.equal('This is the updated project!!!');
+      updatedProject.title.should.equal('Updated Project');
     });
 
     it('should respond with the updated project on a subsequent GET', function(done) {
       request(app)
         .get(`/api/projects/${newProject._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -177,43 +263,9 @@ describe('Project API:', function() {
             return done(err);
           }
           let project = res.body;
-
-          project.name.should.equal('Updated Project');
-          project.info.should.equal('This is the updated project!!!');
-
+          project.title.should.equal('Updated Project');
           done();
         });
-    });
-  });
-
-  describe('PATCH /api/projects/:id', function() {
-    var patchedProject;
-
-    beforeEach(function(done) {
-      request(app)
-        .patch(`/api/projects/${newProject._id}`)
-        .send([
-          { op: 'replace', path: '/name', value: 'Patched Project' },
-          { op: 'replace', path: '/info', value: 'This is the patched project!!!' }
-        ])
-        .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function(err, res) {
-          if(err) {
-            return done(err);
-          }
-          patchedProject = res.body;
-          done();
-        });
-    });
-
-    afterEach(function() {
-      patchedProject = {};
-    });
-
-    it('should respond with the patched project', function() {
-      patchedProject.name.should.equal('Patched Project');
-      patchedProject.info.should.equal('This is the patched project!!!');
     });
   });
 
@@ -221,6 +273,7 @@ describe('Project API:', function() {
     it('should respond with 204 on successful removal', function(done) {
       request(app)
         .delete(`/api/projects/${newProject._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(204)
         .end(err => {
           if(err) {
@@ -233,6 +286,7 @@ describe('Project API:', function() {
     it('should respond with 404 when project does not exist', function(done) {
       request(app)
         .delete(`/api/projects/${newProject._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(404)
         .end(err => {
           if(err) {

@@ -22,7 +22,6 @@ describe('Issue API:', function() {
         email: 'test@example.com',
         password: 'password'
       });
-
       return user.save();
     }, function(err) {
       if(err) console.log('Error saving user', err);
@@ -38,7 +37,7 @@ describe('Issue API:', function() {
       });
     }, function(err) {
       if(err) console.log('Error saving project', err);
-    })
+    });
   });
 
   beforeEach(function(done) {
@@ -66,6 +65,7 @@ describe('Issue API:', function() {
     beforeEach(function(done) {
       request(app)
         .get('/api/issues')
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -86,9 +86,12 @@ describe('Issue API:', function() {
     beforeEach(function(done) {
       request(app)
         .post('/api/issues')
+        .set('authorization', `Bearer ${token}`)
         .send({
-          name: 'New Issue',
-          info: 'This is the brand new issue!!!'
+          title: 'New Issue',
+          description: 'This is the brand new issue!!!',
+          assignee: user._id,
+          creator: user._id
         })
         .expect(201)
         .expect('Content-Type', /json/)
@@ -102,8 +105,10 @@ describe('Issue API:', function() {
     });
 
     it('should respond with the newly created issue', function() {
-      newIssue.name.should.equal('New Issue');
-      newIssue.info.should.equal('This is the brand new issue!!!');
+      newIssue.title.should.equal('New Issue');
+      newIssue.description.should.equal('This is the brand new issue!!!');
+      newIssue.assignee.should.equal(user._id.toString());
+      newIssue.creator.should.equal(user._id.toString());
     });
   });
 
@@ -113,6 +118,7 @@ describe('Issue API:', function() {
     beforeEach(function(done) {
       request(app)
         .get(`/api/issues/${newIssue._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -129,8 +135,10 @@ describe('Issue API:', function() {
     });
 
     it('should respond with the requested issue', function() {
-      issue.name.should.equal('New Issue');
-      issue.info.should.equal('This is the brand new issue!!!');
+      newIssue.title.should.equal('New Issue');
+      newIssue.description.should.equal('This is the brand new issue!!!');
+      newIssue.assignee.should.equal(user._id.toString());
+      newIssue.creator.should.equal(user._id.toString());
     });
   });
 
@@ -140,9 +148,10 @@ describe('Issue API:', function() {
     beforeEach(function(done) {
       request(app)
         .put(`/api/issues/${newIssue._id}`)
+        .set('authorization', `Bearer ${token}`)
         .send({
-          name: 'Updated Issue',
-          info: 'This is the updated issue!!!'
+          title: 'Updated Issue',
+          description: 'This is the updated issue!!!'
         })
         .expect(200)
         .expect('Content-Type', /json/)
@@ -160,13 +169,16 @@ describe('Issue API:', function() {
     });
 
     it('should respond with the updated issue', function() {
-      updatedIssue.name.should.equal('Updated Issue');
-      updatedIssue.info.should.equal('This is the updated issue!!!');
+      updatedIssue.title.should.equal('Updated Issue');
+      updatedIssue.description.should.equal('This is the updated issue!!!');
+      updatedIssue.assignee.should.equal(user._id.toString());
+      updatedIssue.creator.should.equal(user._id.toString());
     });
 
     it('should respond with the updated issue on a subsequent GET', function(done) {
       request(app)
         .get(`/api/issues/${newIssue._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -175,42 +187,13 @@ describe('Issue API:', function() {
           }
           let issue = res.body;
 
-          issue.name.should.equal('Updated Issue');
-          issue.info.should.equal('This is the updated issue!!!');
+          issue.title.should.equal('Updated Issue');
+          issue.description.should.equal('This is the updated issue!!!');
+          issue.assignee.should.equal(user._id.toString());
+          issue.creator.should.equal(user._id.toString());
 
           done();
         });
-    });
-  });
-
-  describe('PATCH /api/issues/:id', function() {
-    var patchedIssue;
-
-    beforeEach(function(done) {
-      request(app)
-        .patch(`/api/issues/${newIssue._id}`)
-        .send([
-          { op: 'replace', path: '/name', value: 'Patched Issue' },
-          { op: 'replace', path: '/info', value: 'This is the patched issue!!!' }
-        ])
-        .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function(err, res) {
-          if(err) {
-            return done(err);
-          }
-          patchedIssue = res.body;
-          done();
-        });
-    });
-
-    afterEach(function() {
-      patchedIssue = {};
-    });
-
-    it('should respond with the patched issue', function() {
-      patchedIssue.name.should.equal('Patched Issue');
-      patchedIssue.info.should.equal('This is the patched issue!!!');
     });
   });
 
@@ -218,6 +201,7 @@ describe('Issue API:', function() {
     it('should respond with 204 on successful removal', function(done) {
       request(app)
         .delete(`/api/issues/${newIssue._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(204)
         .end(err => {
           if(err) {
@@ -230,6 +214,7 @@ describe('Issue API:', function() {
     it('should respond with 404 when issue does not exist', function(done) {
       request(app)
         .delete(`/api/issues/${newIssue._id}`)
+        .set('authorization', `Bearer ${token}`)
         .expect(404)
         .end(err => {
           if(err) {
